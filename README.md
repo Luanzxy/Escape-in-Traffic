@@ -1045,3 +1045,272 @@ def jogo():
         clock.tick(60)
 
 tela_inicial()
+
+
+
+
+
+
+
+
+
+import pygame
+import sys
+import random
+
+# Inicialização do Pygame
+pygame.init()
+height = 800
+width = 800
+screen = pygame.display.set_mode((width, height))  # Tela de 800x800
+clock = pygame.time.Clock()
+
+# Cores
+PRETO = (0, 0, 0)
+BRANCO = (255, 255, 255)
+VERDE = (0, 255, 0)
+VERMELHO = (255, 0, 0)
+AZUL = (0, 0, 255)
+
+# Fonte
+fonte = pygame.font.Font(None, 48)
+
+# Função para desenhar um botão
+def desenhar_botao(texto, x, y, largura, altura, cor_botao=PRETO):
+    retangulo = pygame.Rect(x, y, largura, altura)
+    pygame.draw.rect(screen, cor_botao, retangulo)
+    texto_renderizado = fonte.render(texto, True, BRANCO)
+    screen.blit(texto_renderizado, (x + (largura - texto_renderizado.get_width()) // 2,
+                                    y + (altura - texto_renderizado.get_height()) // 2))
+    return retangulo
+
+# Função para ler o recorde do arquivo
+def ler_recorde():
+    try:
+        with open("recorde.txt", "r") as arquivo:
+            return int(arquivo.read())
+    except (FileNotFoundError, ValueError):
+        return 0  
+
+# Função para salvar o recorde no arquivo
+def salvar_recorde(recorde):
+    with open("recorde.txt", "w") as arquivo:
+        arquivo.write(str(recorde))
+
+# Tela inicial
+def tela_inicial():
+    try:
+        plano_de_fundo_tela_inicial = pygame.image.load('Imagens/plano_de_fundo.jpg')
+        plano_de_fundo_tela_inicial = pygame.transform.scale(plano_de_fundo_tela_inicial, (800, 800))
+    except pygame.error:
+        print("Erro ao carregar a imagem de fundo.")
+        return
+
+    largura_botao = 200
+    altura_botao = 75
+    espaco_entre_botao = 20
+
+    total_width = 2 * largura_botao + espaco_entre_botao
+    start_x = (550 - total_width) // 2
+
+    botao_carros = desenhar_botao("Carros", start_x, 200, largura_botao, altura_botao)
+    botao_jogar = desenhar_botao("Jogar", start_x + largura_botao + espaco_entre_botao, 250, largura_botao, altura_botao)
+
+    tela_de_destino = 0 # 0: continuar na mesma tela, 1: tela carros, 2: tela jogo
+    while tela_de_destino == 0:
+        screen.blit(plano_de_fundo_tela_inicial, (0, 0))
+
+        titulo_renderizado = fonte.render("Escape in Traffic", True, PRETO)
+        screen.blit(titulo_renderizado, (400 - titulo_renderizado.get_width() // 2, 50))
+
+        desenhar_botao("Jogar", botao_jogar.x, botao_jogar.y, largura_botao, altura_botao)
+
+        recorde_renderizado = fonte.render(f'Recorde: {ler_recorde()}', True, BRANCO)
+        screen.blit(recorde_renderizado, (400 - recorde_renderizado.get_width() // 2, 350))
+
+        pygame.display.flip()
+        clock.tick(60)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if botao_carros.collidepoint(mouse_pos):
+                        tela_de_destino = 1
+                    elif botao_jogar.collidepoint(mouse_pos):
+                        tela_de_destino = 2
+    if tela_de_destino == 1:
+        tela_carros()
+    elif tela_de_destino == 2:
+        jogo()
+
+# Tela de carros
+def tela_carros():
+    try:
+        plano_de_fundo_tela_carros = pygame.image.load('Imagens/plano de fundo.jpg')
+        plano_de_fundo_tela_carros = pygame.transform.scale(plano_de_fundo_tela_carros, (800, 800))
+    except pygame.error:
+        print("Erro ao carregar a imagem de fundo.")
+        return
+
+    while True:
+        screen.blit(plano_de_fundo_tela_carros, (0, 0))
+        titulo_renderizado = fonte.render("Tela de Carros", True, BRANCO)
+        screen.blit(titulo_renderizado, (400 - titulo_renderizado.get_width() // 2, 100))
+
+        pygame.display.flip()
+        clock.tick(60)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                tela_inicial()
+
+# Função do jogo
+def jogo():
+    try:
+        carro_segundario_branco = pygame.image.load('Imagens/carro_segundario_branco_pbaixo.png').convert_alpha()
+        carro_segundario_cima = pygame.image.load('Imagens/carro_segundario_azul_pcima.png').convert_alpha()
+        carro_vermelho = pygame.image.load("Imagens/carro_principal_vermelho.png").convert_alpha()
+    except pygame.error:
+        print("Erro ao carregar as imagens dos carros secundários.")
+        return
+
+    try: 
+        plano_de_fundo = pygame.image.load('imagens/estrada.jpg')
+        plano_de_fundo = pygame.transform.scale(plano_de_fundo, (800, 800))
+    except pygame.error:
+        print("Erro ao carregar a imagem de fundo.")
+        return
+
+    try:
+        x = 300
+        carro_jogador = pygame.image.load('Imagens/carro_principal_verde.png').convert_alpha()
+        carro_rect = carro_jogador.get_rect(topleft=(x, 600))
+    except pygame.error:
+        print("Erro ao carregar a imagem do carro.")
+        return
+    
+    carros_segundarios_pbaixo = [carro_segundario_branco]
+    carros_segundarios_pcima = [carro_segundario_cima,carro_vermelho]
+
+    largura_do_carro = 200
+    altura_do_carro = 200
+    carro_jogador = pygame.transform.scale(carro_jogador, (100, 200))
+
+    velocidade = 5
+    carros_inimigos = []
+    carros_paracima = []
+    tempo_ultimo_carro = pygame.time.get_ticks()
+    pontuacao = 0
+    rodando = True
+    y = 300
+    while rodando:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                rodando = False
+    
+        screen.fill((0, 0, 0))
+        screen.blit(plano_de_fundo, (0, 0))
+
+        if pygame.time.get_ticks() - tempo_ultimo_carro > 2000:
+            carro_x = random.randint(0, height - largura_do_carro)
+            carro_y = -altura_do_carro
+            carro_inimigo = random.choice(carros_segundarios_pbaixo).get_rect(topleft=(carro_x, carro_y))
+            carros_inimigos.append(carro_inimigo)
+            tempo_ultimo_carro = pygame.time.get_ticks()
+
+        for carro in carros_inimigos:
+            carro.y += velocidade // 2
+            screen.blit(random.choice(carros_segundarios_pbaixo), carro)
+            if carro.y > screen.get_height():
+                carros_inimigos.remove(carro)
+                pontuacao += 1
+                velocidade += 0.5
+                tempo_ultimo_carro -= 50
+            if carro.colliderect(carro_rect):
+                print("Colisão! Você perdeu!")
+                rodando = False
+        for carro_cima in carros_paracima:
+            carro_cima.y += velocidade//2
+            screen.blit(random.choice(carro_segundario_cima),carro)
+            if carro_cima < screen.get_height():
+                carros_paracima.remove(carro_cima)
+            if carro_cima.colliderect(carro_rect):
+                print("sla")
+                rodando = False
+        if carro_rect.x > width - 100:
+            carro_rect.x = width - 100
+        elif carro_rect.x < 0:
+            carro_rect.x = 0
+
+        pontuacao_renderizada = fonte.render(f'Pontuação: {pontuacao}', True, BRANCO)
+        screen.blit(pontuacao_renderizada, (10, 10))
+
+        teclas = pygame.key.get_pressed()
+        if teclas[pygame.K_a]:
+            carro_rect.x -= velocidade
+            
+        if teclas[pygame.K_d]:
+            carro_rect.x += velocidade
+            print(f"Carro movido para a direita. Nova posição: x={carro_rect.x}, y={carro_rect.y}")
+
+        screen.blit(carro_jogador, carro_rect)
+
+        pygame.display.flip()
+        clock.tick(60)
+
+    tela_game_over(pontuacao)
+
+# Tela de Game Over
+def tela_game_over(pontuacao):
+    try:
+        plano_de_fundo_tela_game_over = pygame.image.load('Imagens/plano_de_fundo.jpg')
+        plano_de_fundo_tela_game_over = pygame.transform.scale(plano_de_fundo_tela_game_over, (800, 800))
+    except pygame.error:
+        print("Erro ao carregar a imagem de fundo.")
+        return
+
+    largura_botao = 200
+    altura_botao = 75
+    espaco_entre_botao = 20
+
+    total_width = largura_botao + espaco_entre_botao
+    start_x = (800 - total_width) // 2
+
+    botao_voltar = desenhar_botao("Voltar", start_x, 400, largura_botao, altura_botao)
+
+    tela_de_destino = 0  # 0: continuar na mesma tela, 1: tela inicial
+    while tela_de_destino == 0:
+        screen.blit(plano_de_fundo_tela_game_over, (0, 0))
+
+        game_over_renderizado = fonte.render("Game Over!", True, VERMELHO)
+        screen.blit(game_over_renderizado, (400 - game_over_renderizado.get_width() // 2, 100))
+
+        pontuacao_renderizada = fonte.render(f'Sua Pontuação: {pontuacao}', True, (250,250,250))
+        screen.blit(pontuacao_renderizada, (400 - pontuacao_renderizada.get_width() // 2, 600))
+
+        desenhar_botao("Voltar", botao_voltar.x, botao_voltar.y, largura_botao, altura_botao)
+
+        pygame.display.flip()
+        clock.tick(60)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if botao_voltar.collidepoint(mouse_pos):
+                        tela_de_destino = 1
+
+    if tela_de_destino == 1:
+        tela_inicial()
+
+tela_inicial()
